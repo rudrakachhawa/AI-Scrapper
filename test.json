@@ -1,0 +1,110 @@
+{
+    "info": {
+      "name": "Smartsheet API",
+      "description": "Smartsheet API Reference",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+      {
+        "name": "Alternate Email addresses",
+        "item": [
+          {
+            "name": "Get Alternate Emails",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer <your-access-token>",
+                  "type": "text"
+                }
+              ],
+              "url": {
+                "raw": "https://api.smartsheet.com/2.0/users/{userId}/alternateemails",
+                "host": ["https://api.smartsheet.com"],
+                "path": ["2.0", "users", "{userId}", "alternateemails"]
+              }
+            }
+          },
+          {
+            "name": "Add Alternate Email",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer <your-access-token>",
+                  "type": "text"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "type": "text"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"email\": \"example@example.com\"\n}"
+              },
+              "url": {
+                "raw": "https://api.smartsheet.com/2.0/users/{userId}/alternateemails",
+                "host": ["https://api.smartsheet.com"],
+                "path": ["2.0", "users", "{userId}", "alternateemails"]
+              }
+            }
+          }
+        ]
+      },
+      {
+        "name": "Attachments",
+        "item": [
+          {
+            "name": "Get Sheet Attachments",
+            "request": {
+              "method": "GET",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer <your-access-token>",
+                  "type": "text"
+                }
+              ],
+              "url": {
+                "raw": "https://api.smartsheet.com/2.0/sheets/{sheetId}/attachments",
+                "host": ["https://api.smartsheet.com"],
+                "path": ["2.0", "sheets", "{sheetId}", "attachments"]
+              }
+            }
+          },
+          {
+            "name": "Add Attachment to Sheet",
+            "request": {
+              "method": "POST",
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer <your-access-token>",
+                  "type": "text"
+                },
+                {
+                  "key": "Content-Type",
+                  "value": "application/json",
+                  "type": "text"
+                }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "--boundary\nContent-Disposition: attachment; filename=\"ProgressReport.docx\"\nContent-Type: application/msword\nContent-Length: 5463\n\n< Binary content for file >\n\n--boundary--"
+              },
+              "url": {
+                "raw": "https://api.smartsheet.com/2.0/sheets/{sheetId}/attachments",
+                "host": ["https://api.smartsheet.com"],
+                "path": ["2.0", "sheets", "{sheetId}", "attachments"]
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+  
