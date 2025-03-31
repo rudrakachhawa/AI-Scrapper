@@ -52,6 +52,7 @@ def scrape_zapier_integrations(request: TaskRequest):
             description = ""
             action_type = ""
             triggertype = ""
+            input_fields = []
 
             name_span = div.select_one("span.app-action__title.css-pgz5n6")
             if name_span:
@@ -68,20 +69,23 @@ def scrape_zapier_integrations(request: TaskRequest):
                     action_type = type_span.get_text(strip=True).lower()
 
             trigger_span = div.find("span", class_="css-1kefmdn")
-            if trigger_span and action_type == "trigger":
+            if trigger_span:
                 triggertype = trigger_span.get_text(strip=True)
-                if triggertype.lower() == "instant":
-                    triggertype = "hook"
-                else:
-                    triggertype = "polling"
-            else:
-                triggertype = None
+
+            input_spans = div.select("span.field-label")
+            for span in input_spans:
+                # Get only direct text (exclude child elements like <div>)
+                text_nodes = [t for t in span.contents if isinstance(t, str)]
+                text = ''.join(text_nodes).strip()
+                if text:
+                    input_fields.append(text)
 
             result.append({
                 "name": name,
                 "description": description,
                 "type": action_type,
-                "triggertype": triggertype
+                "triggertype": triggertype,
+                "inputFields": input_fields
             })
 
         return result
