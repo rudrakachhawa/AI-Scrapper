@@ -1,109 +1,90 @@
 from fastapi import FastAPI
-from langchain_openai import ChatOpenAI
-from browser_use import Agent,Controller
-from dotenv import load_dotenv
-
-# Load environment variables from the .env file
-load_dotenv()
+from pydantic import BaseModel
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from bs4 import BeautifulSoup
+import time
 
 app = FastAPI()
 
-from pydantic import BaseModel
-
 class TaskRequest(BaseModel):
-    prompt: str
+    app_slug: str
 
-from typing import List, Optional, Any
+@app.post("/scrapZapier")
+def scrape_zapier_integrations(request: TaskRequest):
+    url = f"https://zapier.com/apps/{request.app_slug}/integrations"
 
+    options = webdriver.ChromeOptions()
+    # options.add_argument("--headless")
+    driver = webdriver.Chrome(options=options)
+    wait = WebDriverWait(driver, 10)
 
+    try:
+        driver.get(url)
+        time.sleep(3)
 
-class QueryParam(BaseModel):
-    key: str
-    value: str
+        container = wait.until(
+            EC.presence_of_element_located((By.CLASS_NAME, "css-2tvymq"))
+        )
 
+        while True:
+            try:
+                load_more_btn = container.find_element(By.XPATH, './/button[contains(., "Load more")]')
+                ActionChains(driver).move_to_element(load_more_btn).click().perform()
+                time.sleep(2)
+            except:
+                break
 
-class Url(BaseModel):
-    raw: str
-    host: Optional[List[str]]
-    path: Optional[List[str]]
-    query: Optional[List[QueryParam]]
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+        target_div = soup.find("div", class_="css-ywpy44")
+        if not target_div:
+            return []
 
+        result = []
 
-class Header(BaseModel):
-    key: str
-    value: str
-    type: Optional[str]
+        all_items = target_div.select("div.css-1ybx9px, div.css-cgake2")
 
+        for div in all_items:
+            name = ""
+            description = ""
+            action_type = ""
+            triggertype = ""
 
-class Body(BaseModel):
-    mode: Optional[str]
-    raw: Optional[str]
+            name_span = div.select_one("span.app-action__title.css-pgz5n6")
+            if name_span:
+                name = name_span.get_text(strip=True)
 
+            desc_p = div.find("p", class_="css-1nnqqud")
+            if desc_p:
+                description = desc_p.get_text(strip=True)
 
-class Request(BaseModel):
-    method: str
-    header: List[Header]
-    body: Optional[Body]
-    url: Url
+            tooltip_wrapper = div.find("div", class_="_tooltip-wrapper_8x43p_1")
+            if tooltip_wrapper:
+                type_span = tooltip_wrapper.find("span")
+                if type_span:
+                    action_type = type_span.get_text(strip=True).lower()
 
+            trigger_span = div.find("span", class_="css-1kefmdn")
+            if trigger_span and action_type == "trigger":
+                triggertype = trigger_span.get_text(strip=True)
+                if triggertype.lower() == "instant":
+                    triggertype = "hook"
+                else:
+                    triggertype = "polling"
+            else:
+                triggertype = None
 
-class Response(BaseModel):
-    # You can add more fields if needed
-    pass
+            result.append({
+                "name": name,
+                "description": description,
+                "type": action_type,
+                "triggertype": triggertype
+            })
 
+        return result
 
-class Item(BaseModel):
-    name: str
-    request: Request
-    response: Optional[List[Response]]
-
-
-class Script(BaseModel):
-    exec: List[str]
-    type: Optional[str]
-
-
-class Event(BaseModel):
-    listen: str
-    script: Optional[Script]
-
-
-class Variable(BaseModel):
-    key: str
-    value: Any
-
-
-class Info(BaseModel):
-    name: str
-    schema: str
-    _postman_id: Optional[str]
-    description: Optional[str]
-
-
-class PostmanCollection(BaseModel):
-    info: Info
-    item: List[Item]
-    event: Optional[List[Event]]
-    variable: Optional[List[Variable]]
-
-
-class ResponseOutput(BaseModel):
-    data: PostmanCollection
-
-controller = Controller(output_model=ResponseOutput)
-
-# Define the async function that will run the agent
-async def run_agent(task: str):
-    agent = Agent(
-        task=task,
-        llm=ChatOpenAI(model="gpt-4o")
-    )
-    history = await agent.run()
-    return history.final_result()
-
-# Create the route
-@app.post("/scrapDocAndUploadToTechDoc")
-async def scrap_and_upload(request: TaskRequest):
-    # Run the agent and wait for the result
-    return {'data' : await run_agent(request.prompt), 'success':"true"}
-
+    finally:
+        driver.quit()
