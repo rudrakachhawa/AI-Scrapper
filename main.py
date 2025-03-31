@@ -26,17 +26,23 @@ def scrape_zapier_integrations(request: TaskRequest):
         driver.get(url)
         time.sleep(3)
 
-        container = wait.until(
-            EC.presence_of_element_located((By.CLASS_NAME, "css-2tvymq"))
-        )
+        try:
+            container = wait.until(
+                EC.presence_of_element_located((By.CLASS_NAME, "css-2tvymq"))
+            )
 
-        while True:
-            try:
-                load_more_btn = container.find_element(By.XPATH, './/button[contains(., "Load more")]')
-                ActionChains(driver).move_to_element(load_more_btn).click().perform()
-                time.sleep(2)
-            except:
-                break
+            # Try clicking "Load more" until it disappears
+            while True:
+                try:
+                    load_more_btn = container.find_element(By.XPATH, './/button[contains(., "Load more")]')
+                    ActionChains(driver).move_to_element(load_more_btn).click().perform()
+                    time.sleep(2)
+                except:
+                    break
+
+        except:
+            # Skip "load more" if main container not found
+            pass
 
         soup = BeautifulSoup(driver.page_source, "html.parser")
         target_div = soup.find("div", class_="css-ywpy44")
@@ -74,7 +80,6 @@ def scrape_zapier_integrations(request: TaskRequest):
 
             input_spans = div.select("span.field-label")
             for span in input_spans:
-                # Get only direct text (exclude child elements like <div>)
                 text_nodes = [t for t in span.contents if isinstance(t, str)]
                 text = ''.join(text_nodes).strip()
                 if text:
